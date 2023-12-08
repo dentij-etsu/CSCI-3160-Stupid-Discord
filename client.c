@@ -88,8 +88,8 @@ void receive_manager() {
 void send_manager() {
 	// I think this flag may be unneeded
 	int message_flag = 1;
-	char message[MAX_MESSAGE_LENGTH - MAX_USERNAME_LENGTH] = {};
-	char message_and_name[MAX_MESSAGE_LENGTH] = {};
+	char message[MAX_MESSAGE_LENGTH] = {};
+	char message_and_name[MAX_MESSAGE_LENGTH + MAX_USERNAME_LENGTH + 2] = {};
 
 	while(message_flag) 
 	{
