@@ -155,12 +155,12 @@ left_frame = tk.Frame(window, width=175, height=590, bg="#2F3136")
 left_frame.grid(row=0, column=0, padx=10, pady=5, sticky="ns")
 
 # Profile label
-profile_label = tk.Label(left_frame, text="My Profile", fg="white", bg="#2F3136")
-profile_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+#profile_label = tk.Label(left_frame, text="My Profile", fg="white", bg="#2F3136")
+#profile_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
 # Tool bar frame
-tool_bar = tk.Frame(left_frame, width=175, height=185, bd=1, relief="solid", bg="#2F3136")
-tool_bar.grid(row=1, column=0, padx=5, pady=5, sticky="ns")
+#tool_bar = tk.Frame(left_frame, width=175, height=185, bd=1, relief="solid", bg="#2F3136")
+#tool_bar.grid(row=1, column=0, padx=5, pady=5, sticky="ns")
 
 # Users online label
 users_online = tk.Label(left_frame, text="Users Online", fg="white", bg="#2F3136")
