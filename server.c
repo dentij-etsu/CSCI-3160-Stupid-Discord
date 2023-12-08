@@ -246,7 +246,7 @@ void *manage_client(void *arg){
 		struct tm tm = *localtime(&t);
 
 		//checks if the whisper command was entered
-		if(receive > 0 && strcmp(arg_two, "/whisper") == 0) {
+		if(arg_two != NULL && strcmp(arg_two, "/whisper") == 0) {
 
 			//captures arg_four and anything else after
 			char whispered_message[MAX_MESSAGE - 62];
@@ -295,7 +295,7 @@ void *manage_client(void *arg){
 		memset(buffer, 0, MAX_MESSAGE);
 		
 		// Naive way of making sure it doesn't send a client list if someone whispers something
-		if(!(strcmp(arg_two, "/whisper") == 0)) {
+		if(arg_two != NULL && !(strcmp(arg_two, "/whisper") == 0)) {
 			// Add client names and delimiter to buffer
 			for (int cli = 0; cli < MAX_CLIENTS; cli++) {
 				if (clients[cli] != NULL) {
