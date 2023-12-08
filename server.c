@@ -103,7 +103,7 @@ void dequeue_client(int search_id){
 
 	for(int i=0; i < MAX_CLIENTS; ++i)
 	{
-		if(clients[i]->user_id == search_id)
+		if(clients[i] && clients[i]->user_id == search_id)
 		{
 			clients[i] = NULL;
 			client_count--;
@@ -309,7 +309,8 @@ void *manage_client(void *arg){
 
 	pthread_detach(pthread_self());
 
-	return;
+	// I orignially had this as a return to bail out of this method, but I think it was causing stack corruption?
+	return NULL;
 }
 
 int main(int argc, char **argv){
@@ -380,6 +381,7 @@ int main(int argc, char **argv){
 
 	printf("CSCI3160 Stupid Discord: Server\n");
 
+	// Pretty sure leave_flag is never updated, this could likely just be a while true loop
 	while(!(leave_flag))
 	{
 		client_length = sizeof(client_addr);
