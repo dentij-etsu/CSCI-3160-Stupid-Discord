@@ -239,7 +239,8 @@ void *manage_client(void *arg){
 		struct tm tm = *localtime(&t);
 
 		//checks if the whisper command was entered
-		if(strcmp(arg_two, "/whisper") == 0) {
+		//commented out to test if this was seg faulting
+		if(1 == 0) {
 
 			//captures arg_four and anything else after
 			char whispered_message[MAX_MESSAGE];
