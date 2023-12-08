@@ -7,7 +7,7 @@ Contributors:
 	Joe Nagy
 	Sophia Herrell
 Created:	11/16/23
-Last Edited: 	12/8/23
+Last Edited: 	12/08/23
 Description:	Creates an instance of a server that allows clients to connect if they know the port and Hosting Address.
 		Allows some light chatting, please consult your doctor if you experience moderate to severe chatting.
 
@@ -17,9 +17,6 @@ Additional Information:
 Usage:
 - 	./server PORT or ./server
 	If no port number is specified, the default is 9001
-
- Sources:
- -	
 */
 
 #include <sys/socket.h>
@@ -55,10 +52,13 @@ Usage:
 #define MAX_NAME_LENGTH 20
 static int leave_flag = 0;
 static int client_count = 0;
-static int user_id = 13;
+static int user_id = 0;
 FILE *backlog_file_pointer;
-pthread_mutex_t lock;
-pthread_mutex_init(lock);
+
+// pthread_mutex_t lock;
+// pthread_mutex_init(lock);
+
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 struct client_struct{
 	struct sockaddr_in address;
@@ -72,45 +72,49 @@ struct client_struct{
 
 struct client_struct *clients[MAX_CLIENTS];
 
-// Don't know if this creates a lock the way it is supposed to
-// But I have not ran into any errors with this to suggest otherwise
-
 
 // Adds clients to client queue
 // Method assumes enqueue is only called if max clients not reached
 void enqueue_client(struct client_struct *client){
 	pthread_mutex_lock(&lock);
 
-	for(int i=0; i <= client_count; ++i)
+	for(int i=0; i <= MAX_CLIENTS; ++i)
 	{
 		if(!clients[i])
 		{
 			clients[i] = client;
+			clients[i]->user_id = i;
 			client_count++;
-			pthread_mutex_unlock(&lock);
+			
 			break;
 		}
 	}
+	pthread_mutex_unlock(&lock);
 }
 
 // Tries to dequeue client, seg faults randomly for no good reason
 // UPDATE: I tried to fix this. Now instead of randomly seg faulting, it ALWAYS seg faults
 // NEW UPDATE: this does not segfault with new array code
 // NEW NEW UPDATE: It segfaults again
-// NEW NEW NEW UPDATE_FINAL: so it turns out return is an awful way to break out of a loop and that has been causing the problems
 void dequeue_client(int search_id){
 	pthread_mutex_lock(&lock);
 
-	for(int i=0; i < MAX_CLIENTS; ++i)
-	{
-		if(clients[i] && clients[i]->user_id == search_id)
-		{
-			clients[i] = NULL;
-			client_count--;
-			pthread_mutex_unlock(&lock);
-			break;
-		}
-	}
+	clients[search_id] = NULL;
+	client_count--;
+
+	// for(int i=0; i < MAX_CLIENTS; ++i)
+	// {
+		// printf("DQ INDEX: %d CLIENT: %d\n", i, i);
+		// if(clients[i] && clients[i]->user_id == search_id)
+		// {
+			// clients[i] = NULL;
+			// client_count--;
+			
+			// break;
+		// }
+	// }
+	pthread_mutex_unlock(&lock);
+	
 }
 
 // Manually null terminates string
@@ -160,11 +164,12 @@ void send_message(char *s, int sending_user_id){
 // This is what is threaded
 void *manage_client(void *arg){
 	char buffer[MAX_MESSAGE];
+	char *message;
 	char command_buffer[MAX_MESSAGE];
 	char client_name[MAX_NAME_LENGTH];
 	int leave_flag = 0;
 	char backlogfile_name[128];
-	char userbuf[MAX_MESSAGE];
+	char userbuf[22];
 
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);
@@ -215,7 +220,9 @@ void *manage_client(void *arg){
 		int receive = recv(client->socket_file_descriptor, buffer, MAX_MESSAGE, 0);
 
 		null_term_string(buffer, strlen(buffer));
-
+		
+		
+		
 		//copy the buffer into a dedicated buffer
 		strcpy(command_buffer, buffer);
 
@@ -239,11 +246,10 @@ void *manage_client(void *arg){
 		struct tm tm = *localtime(&t);
 
 		//checks if the whisper command was entered
-		//commented out to test if this was seg faulting
-		if(1 == 0) {
+		if(receive > 0 && strcmp(arg_two, "/whisper") == 0) {
 
 			//captures arg_four and anything else after
-			char whispered_message[MAX_MESSAGE];
+			char whispered_message[MAX_MESSAGE - 62];
 			strcpy(whispered_message, arg_four);
 			while ((arg_four = strtok(NULL, delim)) != NULL) {
 				strcat(whispered_message, delim);
@@ -256,7 +262,7 @@ void *manage_client(void *arg){
 			send_private_message(buffer, arg_three);
 			printf("%s\n", buffer);
 
-		}
+		}	
 		else if (receive > 0)
 		{
 			char bufferTimeStamp[MAX_MESSAGE - 62]; //Subtracting 62 to makes space for the numbers below with %d
@@ -278,7 +284,7 @@ void *manage_client(void *arg){
 			send_message(buffer, client->user_id);
 			break;
 		}
-		else
+		else if (receive == -1)
 		{
 			// Pretty sure this only hits if recv returns -1, meaning there was an error
 			printf("%s errored out\n", client->name);
@@ -287,30 +293,37 @@ void *manage_client(void *arg){
 		}
 		// Clear message buffer
 		memset(buffer, 0, MAX_MESSAGE);
-
-		// Add client names and delimiter to buffer
-		for (int cli = 0; cli < MAX_CLIENTS; cli++) {
-			if (clients[cli] != NULL) {
-				snprintf(userbuf, sizeof(userbuf), "`%s", clients[cli]->name);
-				strcat(buffer, userbuf);
-			}
-		}
-		send_message(buffer, client->user_id);
 		
-		// Clear message buffer
-		memset(buffer, 0, MAX_MESSAGE);
-		memset(userbuf, 0, MAX_MESSAGE);
+		// Naive way of making sure it doesn't send a client list if someone whispers something
+		if(!(strcmp(arg_two, "/whisper") == 0)) {
+			// Add client names and delimiter to buffer
+			for (int cli = 0; cli < MAX_CLIENTS; cli++) {
+				if (clients[cli] != NULL) {
+					snprintf(userbuf, sizeof(userbuf), "`%s", clients[cli]->name);
+					strcat(buffer, userbuf);
+				}
+			}
+			send_message(buffer, client->user_id);
+
+			// Clear message buffer
+			memset(buffer, 0, MAX_MESSAGE);
+			memset(userbuf, 0, 22);
+		}
 	}
 
 	// close socket and free up memory
 	close(client->socket_file_descriptor);
 	dequeue_client(client->user_id);
+	
 	free(client);
+	
+	// This prevents double free
+	if(client_count == 0)
 	fclose(backlog_file_pointer);
 
 	pthread_detach(pthread_self());
 
-	// I orignially had this as a return to bail out of this method, but I think it was causing stack corruption?
+
 	return NULL;
 }
 
@@ -382,16 +395,16 @@ int main(int argc, char **argv){
 
 	printf("CSCI3160 Stupid Discord: Server\n");
 
-	// Pretty sure leave_flag is never updated, this could likely just be a while true loop
 	while(!(leave_flag))
 	{
+		
 		client_length = sizeof(client_addr);
 		connection_file_descriptor = accept(sfd, (struct sockaddr*)&client_addr, &client_length);
 
 		// Client network set up
 		struct client_struct *client = (struct client_struct *)malloc(sizeof(struct client_struct));
 		client->address = client_addr;
-		client->user_id = user_id++;
+		//client->user_id = user_id++;
 		client->socket_file_descriptor = connection_file_descriptor;
 
 		// Add client to client queue and thread process
