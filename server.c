@@ -164,7 +164,7 @@ void *manage_client(void *arg){
 	char client_name[MAX_NAME_LENGTH];
 	int leave_flag = 0;
 	char backlogfile_name[128];
-	char userbuf[22];
+	char userbuf[MAX_MESSAGE];
 
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);
@@ -298,7 +298,7 @@ void *manage_client(void *arg){
 		
 		// Clear message buffer
 		memset(buffer, 0, MAX_MESSAGE);
-		memset(userbuf, 0, 22);
+		memset(userbuf, 0, MAX_MESSAGE);
 	}
 
 	// close socket and free up memory
@@ -401,4 +401,3 @@ int main(int argc, char **argv){
 
 	return EXIT_SUCCESS;
 }
-
